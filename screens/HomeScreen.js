@@ -142,6 +142,13 @@ const HomeScreen = ({ navigation, route }) => {
     },
     {
       id: 12,
+      title: 'Menu Items',
+      icon: 'file-document',
+      color: '#5E35B1',
+      screen: 'MenuItems',
+    },
+    {
+      id: 13,
       title: 'Settings',
       icon: 'cog',
       color: '#795548',
@@ -223,6 +230,7 @@ const HomeScreen = ({ navigation, route }) => {
       case 'FeePayment':
       case 'Transport':
       case 'Messages':
+      case 'MenuItems':
         navigation.navigate(item.screen, { userData: user });
         break;
 

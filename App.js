@@ -32,6 +32,7 @@ import MessageDetailScreen from './screens/MessageDetailScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import ProfileDetailsScreen from './screens/ProfileDetailsScreen';
+import MenuItemsScreen from './screens/MenuItemsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -276,6 +277,14 @@ export default function App() {
           name="ProfileDetails" 
           component={ProfileDetailsScreen}
           //options={{ title: 'Profile Details' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="MenuItems" 
+          component={MenuItemsScreen}
+          //options={{ title: 'Menu Items' }}
           screenOptions={{
           headerShown: false,
         }}

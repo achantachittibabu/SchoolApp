@@ -63,15 +63,10 @@ export default function RegisterScreen({ navigation }) {
     permanentState: '',
     permanentPincode: '',
     permanentPhone: '',
-
-    // Files
-    profilePic: '',
-    aadharCardFile: '',
   });
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [profilePicName, setProfilePicName] = useState('');
-  const [aadharCardFileName, setAadharCardFileName] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   const userTypes = ['student', 'teacher', 'admin'];
 
@@ -115,77 +110,125 @@ export default function RegisterScreen({ navigation }) {
   };
 
   const handleRegister = async () => {
+    console.log('=== REGISTRATION STARTED ===');
+    console.log('Form Data:', {
+      email: formData.email,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      filesCount: uploadedFiles.length,
+    });
+
     if (!validateForm()) {
+      console.log('Validation failed - aborting');
       return;
     }
 
+    console.log('Validation passed - proceeding with FormData creation');
     setLoading(true);
     try {
-      const registrationData = {
-        // Account Info
-        username:formData.firstName.trim()+' '+formData.lastName.trim(),
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-        userType: formData.userType,
-        
-        // Personal Information
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        dateOfBirth: formData.dateOfBirth,
-        aadharNumber: formData.aadharNumber.trim(),
-        contactNumber: formData.contactNumber.trim(),
-        dateOfJoin: formData.dateOfJoin,
-        grade: formData.grade,
-        class: formData.classValue,
-        classTeacher: formData.classTeacher,
+      // Create FormData for multipart/form-data request
+      const uploadFormData = new FormData();
 
-        // Parent Information
-        fatherName: formData.fatherName.trim(),
-        motherName: formData.motherName.trim(),
-        fatherAadharNumber: formData.fatherAadharNumber.trim(),
-        motherAadharNumber: formData.motherAadharNumber.trim(),
-        fatherOccupation: formData.fatherOccupation.trim(),
+      // Add all registration fields
+      uploadFormData.append('username', formData.firstName.trim() + '_' + formData.lastName.trim());
+      uploadFormData.append('email', formData.email);
+      uploadFormData.append('phone', formData.phone);
+      uploadFormData.append('password', formData.password);
+      uploadFormData.append('confirmPassword', formData.confirmPassword);
+      uploadFormData.append('userType', formData.userType);
+      
+      // Personal Information
+      uploadFormData.append('firstName', formData.firstName.trim());
+      uploadFormData.append('lastName', formData.lastName.trim());
+      uploadFormData.append('dateOfBirth', formData.dateOfBirth);
+      uploadFormData.append('aadharNumber', formData.aadharNumber.trim());
+      uploadFormData.append('contactNumber', formData.contactNumber.trim());
+      uploadFormData.append('dateOfJoin', formData.dateOfJoin);
+      uploadFormData.append('grade', formData.grade);
+      uploadFormData.append('class', formData.classValue);
+      uploadFormData.append('classTeacher', formData.classTeacher);
 
-        // Present Address
-        addressType: formData.addressType,
-        presentHouseNo: formData.presentHouseNo.trim(),
-        presentStreet: formData.presentStreet.trim(),
-        presentArea: formData.presentArea.trim(),
-        presentLandmark: formData.presentLandmark.trim(),
-        presentDistrict: formData.presentDistrict.trim(),
-        presentState: formData.presentState.trim(),
-        presentPincode: formData.presentPincode.trim(),
-        presentPhone: formData.presentPhone.trim(),
-        sameAddress: formData.sameAddress,
+      // Parent Information
+      uploadFormData.append('fatherName', formData.fatherName.trim());
+      uploadFormData.append('motherName', formData.motherName.trim());
+      uploadFormData.append('fatherAadharNumber', formData.fatherAadharNumber.trim());
+      uploadFormData.append('motherAadharNumber', formData.motherAadharNumber.trim());
+      uploadFormData.append('fatherOccupation', formData.fatherOccupation.trim());
 
-        // Permanent Address
-        permanentHouseNo: formData.permanentHouseNo.trim(),
-        permanentStreet: formData.permanentStreet.trim(),
-        permanentArea: formData.permanentArea.trim(),
-        permanentLandmark: formData.permanentLandmark.trim(),
-        permanentDistrict: formData.permanentDistrict.trim(),
-        permanentState: formData.permanentState.trim(),
-        permanentPincode: formData.permanentPincode.trim(),
-        permanentPhone: formData.permanentPhone.trim(),
-      };
+      // Present Address
+      uploadFormData.append('addressType', formData.addressType);
+      uploadFormData.append('presentHouseNo', formData.presentHouseNo.trim());
+      uploadFormData.append('presentStreet', formData.presentStreet.trim());
+      uploadFormData.append('presentArea', formData.presentArea.trim());
+      uploadFormData.append('presentLandmark', formData.presentLandmark.trim());
+      uploadFormData.append('presentDistrict', formData.presentDistrict.trim());
+      uploadFormData.append('presentState', formData.presentState.trim());
+      uploadFormData.append('presentPincode', formData.presentPincode.trim());
+      uploadFormData.append('presentPhone', formData.presentPhone.trim());
+      uploadFormData.append('sameAddress', formData.sameAddress);
 
-      const response = await axios.post('http://localhost:5000/api/users/', registrationData);
+      // Permanent Address
+      uploadFormData.append('addressType', formData.addressType);
+      uploadFormData.append('permanentHouseNo', formData.permanentHouseNo.trim());
+      uploadFormData.append('permanentStreet', formData.permanentStreet.trim());
+      uploadFormData.append('permanentArea', formData.permanentArea.trim());
+      uploadFormData.append('permanentLandmark', formData.permanentLandmark.trim());
+      uploadFormData.append('permanentDistrict', formData.permanentDistrict.trim());
+      uploadFormData.append('permanentState', formData.permanentState.trim());
+      uploadFormData.append('permanentPincode', formData.permanentPincode.trim());
+      uploadFormData.append('permanentPhone', formData.permanentPhone.trim());
+
+      // Add all uploaded files
+      uploadedFiles.forEach((file, index) => {
+        console.log(`Appending file ${index + 1}:`, file.name);
+        uploadFormData.append('documents', {
+          uri: file.uri,
+          type: file.type,
+          name: file.name,
+        });
+      });
+
+      console.log('=== REQUEST DETAILS ===');
+      console.log('URL:', 'http://localhost:5000/api/users/');
+      console.log('Files attached:', uploadedFiles.length);
+      uploadedFiles.forEach((file) => console.log('  -', file.name));
+      
+      const response = await axios.post('http://127.0.0.1:5000/api/users/', uploadFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Upload Progress: ${percentCompleted}%`);
+        },
+      });
 
       setLoading(false);
 
       if (response.status == 200 || response.status == 201 || response.statusText == 'Created') {
-        Alert.alert('Success', 'Registration successful! Please login.', [
+        console.log('=== REGISTRATION SUCCESS ===');
+        console.log('Response Status:', response.status);
+        
+        Alert.alert('Success', 'Registration successful! Redirecting to home screen...', [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('Login'),
           },
         ]);
+        
+        // Navigate to Index screen after 3 seconds with success message
+        setTimeout(() => {
+          navigation.navigate('Index', {
+            message: 'Registration completed successfully!',
+            type: 'success',
+          });
+        }, 3000);
       }
     } catch (error) {
       setLoading(false);
-      console.error('Registration error:', error);
+      console.error('=== REGISTRATION ERROR ===');
+      console.error('Error Message:', error.message);
+      console.error('Status Code:', error.response?.status);
+      console.error('Error Response:', error.response?.data);
 
       navigation.navigate('Failure', {
         message: error.response?.data?.message || 'Registration failed. Please try again.',
@@ -242,49 +285,82 @@ export default function RegisterScreen({ navigation }) {
       permanentState: '',
       permanentPincode: '',
       permanentPhone: '',
-
-      // Files
-      profilePic: '',
-      aadharCardFile: '',
     });
-    setProfilePicName('');
-    setAadharCardFileName('');
+    setUploadedFiles([]);
   };
 
-  const pickProfilePic = async () => {
+  const imageUploader = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['image/*'],
       });
-      if (result.type === 'success') {
-        setFormData((prev) => ({
-          ...prev,
-          profilePic: result.uri,
-        }));
-        setProfilePicName(result.name);
+      console.log("File pick result:", JSON.stringify(result));
+
+      if (result.canceled) {
+        console.log('Image selection cancelled by user');
+        return;
       }
+
+      if (!result.assets || result.assets.length === 0) {
+        Alert.alert('Error', 'No image selected');
+        return;
+      }
+
+      const asset = result.assets[0];
+      console.log('Selected asset:', asset);
+
+      const newFile = {
+        id: Date.now() + Math.random(),
+        uri: asset.uri,
+        name: asset.name,
+        type: asset.mimeType || 'image/jpeg',
+      };
+
+      setUploadedFiles((prev) => [...prev, newFile]);
+      Alert.alert('Success', `📷 ${asset.name} added to upload`);
     } catch (err) {
-      console.error('Error picking profile pic:', err);
-      Alert.alert('Error', 'Failed to select profile picture');
+      console.error('Error picking image:', err);
+      Alert.alert('Error', 'Failed to select image: ' + err.message);
     }
   };
 
-  const pickAadharCardFile = async () => {
+  const fileUploader = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['image/*', 'application/pdf'],
       });
-      if (result.type === 'success') {
-        setFormData((prev) => ({
-          ...prev,
-          aadharCardFile: result.uri,
-        }));
-        setAadharCardFileName(result.name);
+      console.log("File pick result:", JSON.stringify(result));
+
+      if (result.canceled) {
+        console.log('File selection cancelled by user');
+        return;
       }
+
+      if (!result.assets || result.assets.length === 0) {
+        Alert.alert('Error', 'No document selected');
+        return;
+      }
+
+      const asset = result.assets[0];
+      console.log('Selected asset:', asset);
+
+      const newFile = {
+        id: Date.now() + Math.random(),
+        uri: asset.uri,
+        name: asset.name,
+        type: asset.mimeType || 'application/octet-stream',
+      };
+
+      setUploadedFiles((prev) => [...prev, newFile]);
+      Alert.alert('Success', `📄 ${asset.name} added to upload`);
     } catch (err) {
-      console.error('Error picking aadhar card:', err);
-      Alert.alert('Error', 'Failed to select Aadhar card file');
+      console.error('Error picking file:', err);
+      Alert.alert('Error', 'Failed to select document: ' + err.message);
     }
+  };
+
+  const removeFile = (fileId) => {
+    setUploadedFiles((prev) => prev.filter((file) => file.id !== fileId));
   };
 
   return (
@@ -764,30 +840,43 @@ export default function RegisterScreen({ navigation }) {
         {/* File Upload Section */}
         <Text style={styles.sectionTitle}>Upload Documents</Text>
 
-        <TouchableOpacity
-          style={[styles.uploadButton, loading && styles.buttonDisabled]}
-          onPress={pickProfilePic}
-          disabled={loading}
-        >
-          <Text style={styles.uploadButtonText}>
-            {profilePicName ? '✓ Profile Picture Selected' : '📷 Select Profile Picture'}
-          </Text>
-        </TouchableOpacity>
-        {profilePicName && (
-          <Text style={styles.selectedFileText}>{profilePicName}</Text>
-        )}
+        <View style={styles.fileButtonGroup}>
+          <TouchableOpacity
+            style={[styles.uploadButton, loading && styles.buttonDisabled]}
+            onPress={imageUploader}
+            disabled={loading}
+          >
+            <Text style={styles.uploadButtonText}>📷 Add Image</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.uploadButton, loading && styles.buttonDisabled]}
-          onPress={pickAadharCardFile}
-          disabled={loading}
-        >
-          <Text style={styles.uploadButtonText}>
-            {aadharCardFileName ? '✓ Aadhar Card Selected' : '📄 Select Aadhar Card (PDF/Image)'}
-          </Text>
-        </TouchableOpacity>
-        {aadharCardFileName && (
-          <Text style={styles.selectedFileText}>{aadharCardFileName}</Text>
+          <TouchableOpacity
+            style={[styles.uploadButton, loading && styles.buttonDisabled]}
+            onPress={fileUploader}
+            disabled={loading}
+          >
+            <Text style={styles.uploadButtonText}>📄 Add Document</Text>
+          </TouchableOpacity>
+        </View>
+
+        {uploadedFiles.length > 0 && (
+          <View style={styles.fileListContainer}>
+            <Text style={styles.fileListTitle}>Uploaded Files ({uploadedFiles.length})</Text>
+            {uploadedFiles.map((file) => (
+              <View key={file.id} style={styles.fileItem}>
+                <View style={styles.fileInfo}>
+                  <Text style={styles.fileName}>{file.name}</Text>
+                  <Text style={styles.fileType}>{file.type}</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => removeFile(file.id)}
+                  disabled={loading}
+                  style={styles.removeButton}
+                >
+                  <Text style={styles.removeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
         )}
 
         {/* Buttons */}
@@ -973,6 +1062,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  fileButtonGroup: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 15,
+  },
+  fileListContainer: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  fileListTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  fileItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  fileInfo: {
+    flex: 1,
+  },
+  fileName: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#333',
+  },
+  fileType: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  removeButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  removeButtonText: {
+    fontSize: 18,
+    color: '#FF3B30',
+    fontWeight: '600',
   },
   selectedFileText: {
     fontSize: 12,

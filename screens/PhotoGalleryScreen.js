@@ -9,6 +9,7 @@ import {
   Dimensions,
   Modal,
   Image,
+  Alert,
 } from 'react-native';
 import {
   Card,
@@ -18,6 +19,8 @@ import {
   ActivityIndicator,
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import * as ImagePicker from 'expo-image-picker';
+
 
 const { width } = Dimensions.get('window');
 const imageSize = (width - 48) / 3;
@@ -27,27 +30,29 @@ const PhotoGalleryScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-
-  const samplePhotos = [
-    { id: 1, url: 'https://images.unsplash.com/photo-1427504494785-cdfc993e38ae?w=300&h=300&fit=crop', title: 'Annual Function' },
-    { id: 2, url: 'https://images.unsplash.com/photo-1516321370467-5e86cf2d9739?w=300&h=300&fit=crop', title: 'Sports Day' },
-    { id: 3, url: 'https://images.unsplash.com/photo-1533928298208-27ff66555d0d?w=300&h=300&fit=crop', title: 'Science Fair' },
-    { id: 4, url: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=300&h=300&fit=crop', title: 'Field Day' },
-    { id: 5, url: 'https://images.unsplash.com/photo-1524178232363-1601bc27a24f?w=300&h=300&fit=crop', title: 'Graduation' },
-    { id: 6, url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&h=300&fit=crop', title: 'Cultural Event' },
-    { id: 7, url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=300&h=300&fit=crop', title: 'Debate Competition' },
-    { id: 8, url: 'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?w=300&h=300&fit=crop', title: 'Art Exhibition' },
-    { id: 9, url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop', title: 'Concert' },
-  ];
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const fetchPhotos = async () => {
       setLoading(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        setPhotos(samplePhotos);
+        const response = await fetch('http://localhost:5000/api/photos');
+        if (!response.ok) throw new Error('Failed to fetch photos');
+        
+        const data = await response.json();
+        console.log('Fetched photos:', data);
+        
+        if (data.data && Array.isArray(data.data.photos)) {
+          const formattedPhotos = data.data.photos.map((photo) => ({
+            id: photo._id || photo.filename,
+            url: `http://localhost:5000/uploads/photos/${photo.filename}`,
+            title: photo.originalname?.split('.')[0] || 'Photo',
+          }));
+          setPhotos(formattedPhotos);
+        }
       } catch (error) {
         console.error('Error fetching photos:', error);
+        Alert.alert('Error', 'Failed to load photos from server');
       } finally {
         setLoading(false);
       }
@@ -55,6 +60,77 @@ const PhotoGalleryScreen = ({ navigation }) => {
 
     fetchPhotos();
   }, []);
+
+  const handleUploadPhoto = async () => {
+    try {
+      // Request permission
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'You need to grant media library permissions to upload photos');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+      if (!result.assets || result.assets.length === 0) {
+        Alert.alert('Error', 'No image selected');
+        return;
+      }
+
+      const asset = result.assets[0];
+      await uploadToServer(asset);
+    } catch (err) {
+      console.error('Error picking photo:', err);
+      Alert.alert('Error', 'Failed to select photo: ' + err.message);
+    }
+  };
+
+  const uploadToServer = async (asset) => {
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      
+      // Append file with proper URI format for React Native
+      formData.append('photo', {
+        uri: asset.uri,
+        name: asset.fileName || `photo_${Date.now()}.jpg`,
+        type: asset.type || 'image/jpeg',
+      });
+
+      const response = await fetch('http://localhost:5000/api/photos/upload', {
+        method: 'POST',
+        body: formData,
+        headers: { 'Accept': 'application/json' },
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Upload failed');
+
+      // Add new photo to gallery
+      if (data.data && data.data.photos && data.data.photos.length > 0) {
+        const newPhoto = {
+          id: data.data.photos[0]._id || Date.now(),
+          url: `http://localhost:5000/uploads/photos/${data.data.photos[0].filename}`,
+          title: data.data.photos[0].originalname?.split('.')[0] || 'New Photo',
+        };
+        setPhotos((prev) => [newPhoto, ...prev]);
+      }
+
+      Alert.alert('Success', '📷 Image uploaded successfully');
+      setUploading(false);
+    } catch (error) {
+      Alert.alert('Upload Error', error.message || 'Failed to upload image');
+      setUploading(false);
+    }
+  };
+
+
 
   const renderPhotoGrid = ({ item }) => (
     <TouchableOpacity
@@ -93,6 +169,24 @@ const PhotoGalleryScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* Upload Button */}
+      <View style={styles.uploadSection}>
+        <TouchableOpacity
+          style={[styles.uploadButton, uploading && styles.uploadButtonDisabled]}
+          onPress={handleUploadPhoto}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Icon name="cloud-upload" size={20} color="#FFFFFF" />
+              <Text style={styles.uploadButtonText}>Upload New Photo</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+
       {/* Info Banner */}
       <Card style={styles.infoBanner}>
         <View style={styles.infoBannerContent}>
@@ -106,6 +200,11 @@ const PhotoGalleryScreen = ({ navigation }) => {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3F51B5" />
           <Text style={styles.loadingText}>Loading gallery...</Text>
+        </View>
+      ) : photos.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <Icon name="image-outline" size={48} color="#999" />
+          <Text style={styles.loadingText}>No photos in gallery</Text>
         </View>
       ) : (
         <FlatList
@@ -155,6 +254,8 @@ const PhotoGalleryScreen = ({ navigation }) => {
           )}
         </View>
       </Modal>
+
+
     </View>
   );
 };
@@ -205,6 +306,33 @@ const styles = StyleSheet.create({
     color: '#45B7D1',
     fontWeight: '500',
   },
+  uploadSection: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    backgroundColor: '#5E35B1',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+  },
+  uploadButtonDisabled: {
+    opacity: 0.6,
+  },
+  uploadButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -246,18 +374,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#00000000',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  photoItem: {
-    width: imageSize,
-    height: imageSize,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
   },
   modalContainer: {
     flex: 1,
@@ -304,6 +420,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF22',
     borderRadius: 30,
   },
+
+
 });
 
 export default PhotoGalleryScreen;
