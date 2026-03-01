@@ -31,6 +31,7 @@ const ProfileScreen = ({ navigation, route }) => {
       setProfileData({
         firstName: route.params.userData.firstName || 'N/A',
         lastName: route.params.userData.lastName || 'N/A',
+        profilePic: route.params.userData.profilePic || null,
         dateOfBirth: route.params.userData.dateOfBirth || 'N/A',
         aadharCard: route.params.userData.aadharCard || 'N/A',
         contactNumber: route.params.userData.contactNumber || 'N/A',
@@ -98,14 +99,22 @@ const ProfileScreen = ({ navigation, route }) => {
       <ScrollView style={styles.scrollView}>
         {/* Profile Header Section */}
         <View style={styles.headerSection}>
-          <Avatar.Text
-            size={100}
-            label={profileData?.firstName
-              ?.charAt(0)
-              .concat(profileData?.lastName?.charAt(0) || '')
-              .toUpperCase() || 'U'}
-            style={styles.avatar}
-          />
+          {profileData?.profilePic ? (
+            <Avatar.Image
+              size={100}
+              source={{ uri: profileData.profilePic }}
+              style={styles.avatar}
+            />
+          ) : (
+            <Avatar.Text
+              size={100}
+              label={profileData?.firstName
+                ?.charAt(0)
+                .concat(profileData?.lastName?.charAt(0) || '')
+                .toUpperCase() || 'U'}
+              style={styles.avatar}
+            />
+          )}
           <Title style={styles.userName}>
             {profileData?.firstName} {profileData?.lastName}
           </Title>

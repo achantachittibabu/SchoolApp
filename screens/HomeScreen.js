@@ -6,7 +6,10 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Avatar,
   Card,
@@ -24,42 +27,152 @@ import axios from 'axios';
 const HomeScreen = ({ navigation, route }) => {
   const [user, setUser] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [isUploadingProfilePic, setIsUploadingProfilePic] = useState(false);
 
   useEffect(() => {
     // Get user data from navigation params or AsyncStorage
-    console.log('HomeScreen useEffect: Route params received:', route.params);
-    if (route.params?.userData) {
-      console.log('HomeScreen useEffect: Setting user data:', route.params.userData);
-      setUser(route.params.userData);
+    console.log('\n[HomeScreen useEffect] Route params changed');
+    console.log('[HomeScreen useEffect] Full route.params:', route.params);
+    
+    if (route.params?.userid) {
+      console.log('[HomeScreen useEffect] User data found:', route.params.userid);
+      console.log('[HomeScreen useEffect] Profile Pic:', route.params.profilePic);
+      console.log('[HomeScreen useEffect] User Type:', route.params.usertype);
+      setUser(route.params);
     } else {
-      console.log('HomeScreen useEffect: No userData found in route params');
+      console.log('[HomeScreen useEffect] No userData found in route params');
     }
   }, [route.params]);
 
-  const handleLogout = () => {
-    console.log('handleLogout: Logout alert displayed');
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => console.log('handleLogout: User cancelled logout'),
+  // Additional useEffect to log when user state changes
+  useEffect(() => {
+    if (user) {
+      console.log('\n[HomeScreen user state updated]:', user);
+      console.log('[HomeScreen profilePic value]:', user.profilePic);
+      console.log('[HomeScreen username]:', user.username);
+    }
+  }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      console.log('handleLogout: User logging out');
+      
+      // Clear user data from AsyncStorage
+      await AsyncStorage.removeItem('userid');
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      
+      console.log('handleLogout: Data cleared successfully');
+      
+      // Reset navigation stack and go to Index screen
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Index' }],
+      });
+    } catch (error) {
+      console.error('handleLogout: Error during logout:', error);
+    }
+  };
+
+  const handleUpdateProfilePic = async () => {
+    try {
+      console.log('handleUpdateProfilePic: Starting image picker');
+      setIsUploadingProfilePic(true);
+      
+      // Request permission to access image library
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'You need to allow access to your photo library');
+        setIsUploadingProfilePic(false);
+        return;
+      }
+
+      // Open image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (result.canceled) {
+        console.log('handleUpdateProfilePic: User cancelled image selection');
+        setIsUploadingProfilePic(false);
+        return;
+      }
+
+      const selectedImage = result.assets[0];
+      console.log('handleUpdateProfilePic: Image selected:', selectedImage.uri);
+      console.log('handleUpdateProfilePic: Image details:');
+      console.log('  Width:', selectedImage.width);
+      console.log('  Height:', selectedImage.height);
+      console.log('  Size (bytes):', selectedImage.fileSize);
+      console.log('  Size (KB):', (selectedImage.fileSize / 1024).toFixed(2));
+      console.log('  Type:', selectedImage.type);
+
+      // Validate form data
+      console.log('handleUpdateProfilePic: Validating form data...');
+      
+      if (!user?.userid) {
+        throw new Error('User ID is missing');
+      }
+       
+      if (!user?.username) {
+        throw new Error('Username is missing');
+      }
+      
+      if (!selectedImage.uri) {
+        throw new Error('Image URI is missing');
+      }
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('userid', user?.userid);
+      formData.append('username', user?.username);
+      formData.append('profilePicture', {
+        uri: selectedImage.uri,
+        type: selectedImage.type || 'image/jpeg',
+        name: `${user?.username}.jpg`,
+      });
+
+      // Log form data being sent
+      console.log('handleUpdateProfilePic: Form data validation successful');
+      console.log('handleUpdateProfilePic: Uploading to server...');
+      console.log('  userid:', user?.userid);
+      console.log('  username:', user?.username);
+      console.log('  image size:', selectedImage.fileSize, 'bytes');
+
+      // Upload to server
+      const response = await axios.post('http://localhost:5000/api/photos/update-profile-pic', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
         },
-        {
-          text: 'Logout',
-          onPress: () => {
-            console.log('handleLogout: User confirmed logout, navigating to Login screen');
-            // Clear user data from AsyncStorage if needed
-            // await AsyncStorage.removeItem('token');
-            navigation.replace('Login');
-          },
-          style: 'destructive',
-        },
-      ],
-      { cancelable: true }
-    );
+      });
+
+      if (response.status === 200) {
+        console.log('handleUpdateProfilePic: Image uploaded successfully');
+        
+        // Update local user state with new profile picture
+        const updatedUser = {
+          ...user,
+          profilePic: response.data.profilePictureBase64 
+            ? `data:${response.data.profilePictureType};base64,${response.data.profilePictureBase64}`
+            : response.data.profilePicture,
+        };
+        
+        setUser(updatedUser);
+        console.log('handleUpdateProfilePic: Profile picture updated locally');
+        Alert.alert('Success', 'Profile picture updated successfully!');
+      }
+    } catch (error) {
+      console.error('handleUpdateProfilePic: Error updating profile pic:', error);
+      console.error('handleUpdateProfilePic: Error response status:', error.response?.status);
+      console.error('handleUpdateProfilePic: Error response data:', error.response?.data);
+      console.error('handleUpdateProfilePic: Error message:', error.message);
+      Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to update profile picture');
+    } finally {
+      setIsUploadingProfilePic(false);
+    }
   };
 
   const menuItems = [
@@ -249,13 +362,24 @@ const HomeScreen = ({ navigation, route }) => {
       {/* Header with Profile */}
       <View style={styles.header}>
         <View style={styles.profileSection}>
-          <Avatar.Image 
-            size={70}
-            source={{
-              uri: user?.profilePic || 'https://via.placeholder.com/150',
-            }}
-            style={styles.avatar}
-          />
+          <TouchableOpacity
+            onPress={handleUpdateProfilePic}
+            disabled={isUploadingProfilePic}
+            style={styles.avatarContainer}
+          >
+            {isUploadingProfilePic && (
+              <View style={styles.uploadingOverlay}>
+                <ActivityIndicator size="large" color="#fff" />
+              </View>
+            )}
+            <Avatar.Image 
+              size={70}
+              source={{
+                uri: user?.profilePic || 'https://via.placeholder.com/150',
+              }}
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
           <View style={styles.userInfo}>
             <Title style={styles.userName}>
               {user?.username || 'Guest'}
@@ -394,6 +518,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 35,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
   },
   avatar: {
     backgroundColor: '#fff',

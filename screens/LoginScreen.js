@@ -29,7 +29,9 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       const response = await axios.post('http://localhost:5000/api/users/login', {
-        username,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },username,
         password,
         usertype,
       });
@@ -38,17 +40,39 @@ export default function LoginScreen({ navigation }) {
       console.log('Response Status:', response.status);
       console.log('Response Data:', response.data);
       console.log('Full Response:', response);
+      console.log('Profile Picture from API:', response.data.profilePicture);
       if (response.status === 200) {
         Alert.alert('Success', 'Login successful!');
+        
+        // Construct image URI from base64 if available
+        let profilePicUri = response.data.profilePicture;
+        if (response.data.profilePictureBase64 && response.data.profilePictureType) {
+          profilePicUri = `data:${response.data.profilePictureType};base64,${response.data.profilePictureBase64}`;
+          
+          // Calculate and log file size
+          const base64String = response.data.profilePictureBase64;
+          const binaryString = atob(base64String);
+          const fileSizeBytes = binaryString.length;
+          const fileSizeKB = (fileSizeBytes / 1024).toFixed(2);
+          const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+          
+          console.log('Profile Picture Base64 File Size:');
+          console.log(`  Bytes: ${fileSizeBytes}`);
+          console.log(`  KB: ${fileSizeKB}`);
+          console.log(`  MB: ${fileSizeMB}`);
+        }
+        
         navigation.navigate('Home', { 
-            userData: {
-        username: username,
-        usertype: usertype,
-        user: response.data,
-      }     
-        });
-      }
-    } catch (error) {
+          userid: response.data.userid,
+          username: response.data.username,
+          email: response.data.email,
+          firstName: response.data.firstName,
+          profilePic: profilePicUri,
+          usertype: usertype
+        }     
+      );
+    }
+   } catch (error) {
       setLoading(false);
       console.error('Login error:', error);
       
