@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   Image,
   Dimensions,
   StatusBar,
+  Alert,
 } from 'react-native';
 import {
   Card,
@@ -16,11 +17,45 @@ import {
   Chip,
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getContactDetails } from '../utils/contactApi';
 
 const { width, height } = Dimensions.get('window');
 
 const IndexScreen = ({ navigation }) => {
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [contactDetails, setContactDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  /**
+   * Handle Contact Us navigation with API call
+   */
+  const handleContactUsPress = async () => {
+    console.log('[IndexScreen] Contact Us button pressed');
+    setLoading(true);
+    try {
+      console.log('[IndexScreen] Attempting to fetch contact details from API...');
+      const response = await getContactDetails();
+      
+      console.log('[IndexScreen] Contact details fetched successfully');
+      console.log('[IndexScreen] Response data:', response);
+      
+      setContactDetails(response);
+      
+      console.log('[IndexScreen] Navigating to ContactUs with contact details...');
+      console.log('[IndexScreen] Data being passed:', response);
+      
+      navigation.navigate('ContactUs', { contactDetails: response });
+    } catch (error) {
+      console.error('[IndexScreen] Error fetching contact details:', error.message);
+      Alert.alert(
+        'Error',
+        'Failed to load contact details. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const menuItems = [
     {
@@ -109,8 +144,15 @@ const IndexScreen = ({ navigation }) => {
               <TouchableOpacity
                 key={item.id}
                 style={styles.menuCard}
-                onPress={() => navigation.navigate(item.route)}
+                onPress={() => {
+                  if (item.route === 'ContactUs') {
+                    handleContactUsPress();
+                  } else {
+                    navigation.navigate(item.route);
+                  }
+                }}
                 activeOpacity={0.7}
+                disabled={loading}
               >
                 <View
                   style={[styles.cardGradient, { backgroundColor: item.color }]}

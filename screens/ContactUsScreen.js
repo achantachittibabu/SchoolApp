@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -14,65 +14,158 @@ import {
   Button,
   Text,
   ActivityIndicator,
+  Snackbar,
 } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { submitContactMessage } from '../utils/contactApi';
 
-const ContactUsScreen = ({ navigation }) => {
+const ContactUsScreen = ({ navigation, route }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     message: '',
   });
   const [sending, setSending] = useState(false);
+  const [contactMethods, setContactMethods] = useState([]);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const contactMethods = [
-    {
-      icon: 'phone',
-      title: 'Phone',
-      value: '+1 (555) 123-4567',
-      color: '#FF6B6B',
-      action: () => Linking.openURL('tel:+15551234567'),
-    },
-    {
-      icon: 'email',
-      title: 'Email',
-      value: 'info@myschool.edu',
-      color: '#4ECDC4',
-      action: () => Linking.openURL('mailto:info@myschool.edu'),
-    },
-    {
-      icon: 'map-marker',
-      title: 'Address',
-      value: '123 School Street, City, ST 12345',
-      color: '#45B7D1',
-      action: () => Linking.openURL('https://maps.google.com'),
-    },
-    {
-      icon: 'clock',
-      title: 'Hours',
-      value: 'Mon - Fri: 8:00 AM - 5:00 PM',
-      color: '#F7DC6F',
-      action: () => {},
-    },
-  ];
+  /**
+   * Initialize contact methods from API response
+   */
+  useEffect(() => {
+    console.log('[ContactUsScreen] Component mounted');
+    console.log('[ContactUsScreen] Route params:', route.params);
+    
+    if (route.params && route.params.contactDetails) {
+      const apiContactDetails = route.params.contactDetails;
+      console.log('[ContactUsScreen] Contact details received from Navigation:', apiContactDetails);
+      
+      // Map API response to contact methods format
+      const mappedMethods = [
+        {
+          icon: 'phone',
+          title: 'Phone',
+          value: apiContactDetails.data[0].phoneNumber || '+1 (555) 123-4567',
+          color: '#FF6B6B',
+          action: () => {
+            const phone = apiContactDetails.data[0].phoneNumber || '+15551234567';
+            console.log('[ContactUsScreen] Initiating phone call to:', phone);
+            Linking.openURL(`tel:${phone.replace(/\D/g, '')}`);
+          },
+        },
+        {
+          icon: 'email',
+          title: 'Email',
+          value: apiContactDetails.data[0].emailId || 'info@myschool.edu',
+          color: '#4ECDC4',
+          action: () => {
+            const email = apiContactDetails.data[0].emailId || 'info@myschool.edu';
+            console.log('[ContactUsScreen] Opening email to:', email);
+            Linking.openURL(`mailto:${email}`);
+          },
+        },
+        {
+          icon: 'map-marker',
+          title: 'Address',
+          value: apiContactDetails.data[0].address || '123 School Street, City, ST 12345',
+          color: '#45B7D1',
+          action: () => {
+            console.log('[ContactUsScreen] Opening maps');
+            Linking.openURL('https://maps.google.com');
+          },
+        },
+        {
+          icon: 'clock',
+          title: 'Working Hours',
+          value: apiContactDetails.data[0].workingHours || 'Mon - Fri: 8:00 AM - 5:00 PM',
+          color: '#F7DC6F',
+          action: () => {
+            console.log('[ContactUsScreen] Working Hours:', apiContactDetails.data[0].workingHours);
+          },
+        },
+      ];
+      
+      console.log('[ContactUsScreen] Mapped contact methods:', mappedMethods);
+      setContactMethods(mappedMethods);
+    } else {
+      console.log('[ContactUsScreen] No contact details from API, using defaults');
+      // Default contact methods if no data from API
+      setContactMethods([
+        {
+          icon: 'phone',
+          title: 'Phone',
+          value: '+1 (555) 123-4567',
+          color: '#FF6B6B',
+          action: () => Linking.openURL('tel:+15551234567'),
+        },
+        {
+          icon: 'email',
+          title: 'Email',
+          value: 'info@myschool.edu',
+          color: '#4ECDC4',
+          action: () => Linking.openURL('mailto:info@myschool.edu'),
+        },
+        {
+          icon: 'map-marker',
+          title: 'Address',
+          value: '123 School Street, City, ST 12345',
+          color: '#45B7D1',
+          action: () => Linking.openURL('https://maps.google.com'),
+        },
+        {
+          icon: 'clock',
+          title: 'Hours',
+          value: 'Mon - Fri: 8:00 AM - 5:00 PM',
+          color: '#F7DC6F',
+          action: () => {},
+        },
+      ]);
+    }
+  }, [route.params]);
 
   const handleSendMessage = async () => {
+    console.log('[ContactUsScreen] Send message button pressed');
+    console.log('[ContactUsScreen] Form data:', formData);
+    
     if (!formData.name || !formData.email || !formData.message) {
+      console.warn('[ContactUsScreen] Form validation failed - missing fields');
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     setSending(true);
+    console.log('[ContactUsScreen] Setting sending state to true');
+    
     try {
-      // Simulate sending message
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      Alert.alert('Success', 'Message sent successfully!', [
-        { text: 'OK', onPress: () => setFormData({ name: '', email: '', message: '' }) },
-      ]);
+      console.log('[ContactUsScreen] Preparing to send message to backend...');
+      console.log('[ContactUsScreen] Message payload:', {
+        name: formData.name,
+        email: formData.email,
+        message: formData.message,
+      });
+      
+      // Call the API to submit the message
+      const response = await submitContactMessage(formData);
+      
+      console.log('[ContactUsScreen] Message sent successfully');
+      console.log('[ContactUsScreen] Server response:', response);
+      
+      // Reset the form immediately
+      console.log('[ContactUsScreen] Resetting form data');
+      setFormData({ name: '', email: '', message: '' });
+      
+      // Show success message
+      setSuccessMessage(response.message || 'Message submitted successfully!');
+      setShowSuccess(true);
+      
     } catch (error) {
-      Alert.alert('Error', 'Failed to send message');
+      console.error('[ContactUsScreen] Error sending message:', error.message);
+      console.error('[ContactUsScreen] Full error details:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
     } finally {
       setSending(false);
+      console.log('[ContactUsScreen] Setting sending state to false');
     }
   };
 
@@ -229,6 +322,16 @@ const ContactUsScreen = ({ navigation }) => {
         {/* Footer Spacing */}
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        visible={showSuccess}
+        onDismiss={() => setShowSuccess(false)}
+        duration={3000}
+        style={styles.successSnackbar}
+      >
+        <Text style={styles.snackbarText}>{successMessage}</Text>
+      </Snackbar>
     </View>
   );
 };
@@ -393,6 +496,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 3,
+  },
+  successSnackbar: {
+    backgroundColor: '#4CAF50',
+  },
+  snackbarText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 
