@@ -31,6 +31,17 @@ const AttendanceScreen = ({ navigation, route }) => {
   const [user, setUser] = useState(null);
   const [selectedUserType, setSelectedUserType] = useState('student');
   const [showUserTypeMenu, setShowUserTypeMenu] = useState(false);
+  
+  const [selectedStudentName, setSelectedStudentName] = useState(null);
+  const [showStudentNameMenu, setShowStudentNameMenu] = useState(false);
+  const [students, setStudentsList] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  
+  const [selectedTeacherName, setSelectedTeacherName] = useState(null);
+  const [showTeacherNameMenu, setShowTeacherNameMenu] = useState(false);
+  const [teachers, setTeachersList] = useState([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -104,6 +115,44 @@ const AttendanceScreen = ({ navigation, route }) => {
     return { status: 'Absent', color: '#f44336' };
   };
 
+  // Calculate total duration in hours and return duration info with color
+  const calculateDuration = (loginTime, logoutTime) => {
+    if (!loginTime || !logoutTime) {
+      return { hours: 0, minutes: 0, totalMinutes: 0, color: '#f44336', status: 'Absent' };
+    }
+
+    try {
+      const [lhours, lminutes] = loginTime.split(':').map(Number);
+      const [ohours, ominutes] = logoutTime.split(':').map(Number);
+
+      const loginMinutes = lhours * 60 + lminutes;
+      const logoutMinutes = ohours * 60 + ominutes;
+      let durationMinutes = logoutMinutes - loginMinutes;
+
+      if (durationMinutes < 0) {
+        durationMinutes += 24 * 60; // Handle next day case
+      }
+
+      const hours = Math.floor(durationMinutes / 60);
+      const minutes = durationMinutes % 60;
+
+      // Green if >= 7 hours, Red if < 7 hours
+      const color = durationMinutes >= 420 ? '#4caf50' : '#f44336'; // 420 minutes = 7 hours
+      const status = durationMinutes >= 420 ? 'Present' : 'Absent';
+
+      return {
+        hours,
+        minutes,
+        totalMinutes: durationMinutes,
+        color,
+        status,
+      };
+    } catch (error) {
+      console.error('Error calculating duration:', error);
+      return { hours: 0, minutes: 0, totalMinutes: 0, color: '#f44336', status: 'Absent' };
+    }
+  };
+
   // Handle date selection
   const handleStartDateChange = (newDate) => {
     console.log('[handleStartDateChange] New date:', newDate);
@@ -123,8 +172,56 @@ const AttendanceScreen = ({ navigation, route }) => {
     console.log('\n[handleUserTypeSelect] Type:', userType);
     setSelectedUserType(userType);
     setShowUserTypeMenu(false);
+    setSelectedStudentName(null);
+    setSelectedTeacherName(null);
     console.log('[handleUserTypeSelect] Menu closed');
   };
+
+  // Fetch students data
+  const fetchStudents = async () => {
+    setLoadingStudents(true);
+    try {
+      const mockStudents = [
+        { id: '1', name: 'Aarav Kumar', studentNumber: 'STU001' },
+        { id: '2', name: 'Bhavna Singh', studentNumber: 'STU002' },
+        { id: '3', name: 'Chirag Patel', studentNumber: 'STU003' },
+        { id: '4', name: 'Diya Sharma', studentNumber: 'STU004' },
+        { id: '5', name: 'Eshan Verma', studentNumber: 'STU005' },
+      ];
+      setStudentsList(mockStudents);
+    } catch (error) {
+      console.error('[fetchStudents] Error:', error);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  // Fetch teachers data
+  const fetchTeachers = async () => {
+    setLoadingTeachers(true);
+    try {
+      const mockTeachers = [
+        { id: '1', name: 'Mr. Rajesh Kumar' },
+        { id: '2', name: 'Ms. Priya Sharma' },
+        { id: '3', name: 'Dr. Amit Singh' },
+        { id: '4', name: 'Ms. Neha Patel' },
+        { id: '5', name: 'Mr. Vikram Verma' },
+      ];
+      setTeachersList(mockTeachers);
+    } catch (error) {
+      console.error('[fetchTeachers] Error:', error);
+    } finally {
+      setLoadingTeachers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedUserType === 'student') {
+      fetchStudents();
+    } else if (selectedUserType === 'teacher') {
+      fetchTeachers();
+    }
+  }, [selectedUserType]);
 
   useEffect(() => {
     console.log('\n[useEffect] Route params changed');
@@ -151,6 +248,8 @@ const AttendanceScreen = ({ navigation, route }) => {
   const fetchAttendance = async () => {
     console.log('\n\n========== FETCH ATTENDANCE START ==========');
     console.log('[fetchAttendance] UserType:', selectedUserType);
+    console.log('[fetchAttendance] StudentId:', selectedStudentName);
+    console.log('[fetchAttendance] TeacherId:', selectedTeacherName);
     console.log('[fetchAttendance] Date range:', formatDate(startDate), 'to', formatDate(endDate));
     setLoading(true);
     setHasSearched(true);
@@ -162,6 +261,15 @@ const AttendanceScreen = ({ navigation, route }) => {
         startDate: formatDate(startDate),
         endDate: formatDate(endDate),
       };
+      
+      if (selectedUserType === 'student' && selectedStudentName) {
+        params.studentId = selectedStudentName;
+      }
+      
+      if (selectedUserType === 'teacher' && selectedTeacherName) {
+        params.teacherId = selectedTeacherName;
+      }
+      
       console.log('[fetchAttendance] Request params:', params);
       
       const response = await axios.get('http://localhost:5000/api/attendance', { params });
@@ -184,10 +292,12 @@ const AttendanceScreen = ({ navigation, route }) => {
       console.log('[fetchAttendance] Using mock data instead...');
       
       const mockData = [
-        { userid: '1001', username: 'john_doe', fullname: 'John Doe', email: 'john@example.com', userType: 'student', date: formatDate(new Date()), timeIn: '09:00', timeOut: '16:30' },
-        { userid: '1002', username: 'jane_smith', fullname: 'Jane Smith', email: 'jane@example.com', userType: 'student', date: formatDate(new Date()), timeIn: '09:15', timeOut: null },
-        { userid: '1003', username: 'alex_johnson', fullname: 'Alex Johnson', email: 'alex@example.com', userType: 'student', date: formatDate(new Date()), timeIn: '09:00', timeOut: '13:00' },
-        { userid: '1004', username: 'sarah_williams', fullname: 'Sarah Williams', email: 'sarah@example.com', userType: 'student', date: formatDate(new Date()), timeIn: null, timeOut: null },
+        { userid: '1001', username: 'john_doe', fullname: 'John Doe', email: 'john@example.com', userType: 'student', date: formatDate(new Date()), loginTime: '09:00', logoutTime: '16:45' },
+        { userid: '1002', username: 'jane_smith', fullname: 'Jane Smith', email: 'jane@example.com', userType: 'student', date: formatDate(new Date()), loginTime: '09:15', logoutTime: '17:30' },
+        { userid: '1003', username: 'alex_johnson', fullname: 'Alex Johnson', email: 'alex@example.com', userType: 'student', date: formatDate(new Date()), loginTime: '09:00', logoutTime: '13:00' },
+        { userid: '1004', username: 'sarah_williams', fullname: 'Sarah Williams', email: 'sarah@example.com', userType: 'student', date: formatDate(new Date()), loginTime: '08:30', logoutTime: '16:00' },
+        { userid: '1005', username: 'mike_brown', fullname: 'Mike Brown', email: 'mike@example.com', userType: 'student', date: formatDate(new Date()), loginTime: '09:00', logoutTime: '17:00' },
+        { userid: '1006', username: 'emma_davis', fullname: 'Emma Davis', email: 'emma@example.com', userType: 'student', date: formatDate(new Date()), loginTime: null, logoutTime: null },
       ];
       console.log('[fetchAttendance] Mock data loaded:', mockData.length, 'records');
       setUsers(mockData);
@@ -384,11 +494,11 @@ const AttendanceScreen = ({ navigation, route }) => {
 
   const renderAttendanceRow = ({ item }) => {
     console.log('[renderAttendanceRow] Rendering item:', item.fullname || item.username);
-    const statusInfo = calculateStatus(item.loginTime, item.logoutTime);
-    console.log('[renderAttendanceRow] Status:', statusInfo.status);
+    const durationInfo = calculateDuration(item.loginTime, item.logoutTime);
+    console.log('[renderAttendanceRow] Duration:', durationInfo.hours, 'hours', durationInfo.minutes, 'minutes');
 
     return (
-      <Card style={styles.rowCard}>
+      <Card style={[styles.rowCard, { borderLeftColor: durationInfo.color, borderLeftWidth: 5 }]}>
         <Card.Content>
           <View style={styles.rowHeader}>
             <View style={styles.userInfo}>
@@ -403,10 +513,10 @@ const AttendanceScreen = ({ navigation, route }) => {
             <View
               style={[
                 styles.statusBadge,
-                { backgroundColor: statusInfo.color },
+                { backgroundColor: durationInfo.color },
               ]}
             >
-              <Text style={styles.statusText}>{statusInfo.status}</Text>
+              <Text style={styles.statusText}>{durationInfo.status}</Text>
             </View>
           </View>
 
@@ -423,13 +533,21 @@ const AttendanceScreen = ({ navigation, route }) => {
               <View style={styles.timeBlock}>
                 <Icon name="login" size={18} color="#4caf50" />
                 <Text style={styles.timeLabel}>Login</Text>
-                <Text style={styles.timeValue}>{formatTime(item.timeIn)}</Text>
+                <Text style={styles.timeValue}>{item.loginTime || 'N/A'}</Text>
               </View>
 
               <View style={styles.timeBlock}>
                 <Icon name="logout" size={18} color="#f44336" />
                 <Text style={styles.timeLabel}>Logout</Text>
-                <Text style={styles.timeValue}>{formatTime(item.timeOut)}</Text>
+                <Text style={styles.timeValue}>{item.logoutTime || 'N/A'}</Text>
+              </View>
+
+              <View style={[styles.timeBlock, { backgroundColor: durationInfo.color + '20', borderRadius: 8, paddingHorizontal: 8 }]}>
+                <Icon name="clock-outline" size={18} color={durationInfo.color} />
+                <Text style={styles.timeLabel}>Duration</Text>
+                <Text style={[styles.timeValue, { color: durationInfo.color, fontWeight: 'bold' }]}>
+                  {durationInfo.hours}h {durationInfo.minutes}m
+                </Text>
               </View>
             </View>
           </View>
@@ -447,12 +565,46 @@ const AttendanceScreen = ({ navigation, route }) => {
       <Card style={styles.headerCard}>
         <Card.Content>
           <View style={styles.headerContent}>
-            <View>
+            <View style={styles.headerTitleSection}>
               <Title style={styles.headerTitle}>Attendance Management</Title>
               <Text style={styles.headerSubtitle}>Track and manage attendance details</Text>
             </View>
-            <View style={styles.headerIcon}>
-              <Icon name="calendar-check" size={40} color="#2196F3" />
+            <View style={styles.headerButtonGroup}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('PendingLeaveApprovals')}
+                style={styles.pendingApprovalButton}
+              >
+                <Icon name="clipboard-check-multiple" size={18} color="#fff" />
+                <Text style={styles.pendingApprovalButtonText}>Approvals</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('LeaveRequest', { userType: selectedUserType })}
+                style={styles.leaveRequestButton}
+              >
+                <Icon name="calendar-clock" size={18} color="#fff" />
+                <Text style={styles.leaveRequestButtonText}>Leave</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('HolidayCalendar')}
+                style={styles.holidayButton}
+              >
+                <Icon name="calendar-multiple" size={18} color="#fff" />
+                <Text style={styles.holidayButtonText}>Holiday</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('RegisterAttendance')}
+                style={styles.addAttendanceButton}
+              >
+                <Icon name="plus" size={18} color="#fff" />
+                <Text style={styles.addAttendanceButtonText}>Add</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('UpdateAttendance')}
+                style={styles.updateAttendanceButton}
+              >
+                <Icon name="pencil" size={18} color="#fff" />
+                <Text style={styles.updateAttendanceButtonText}>Update</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Card.Content>
@@ -497,6 +649,88 @@ const AttendanceScreen = ({ navigation, route }) => {
               />
             </Menu>
           </View>
+
+          {/* Student Name Dropdown - Only for students */}
+          {selectedUserType === 'student' && (
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>Student Name</Text>
+              <Menu
+                visible={showStudentNameMenu}
+                onDismiss={() => setShowStudentNameMenu(false)}
+                anchor={
+                  <TouchableOpacity
+                    onPress={() => setShowStudentNameMenu(true)}
+                    style={styles.dropdownButton}
+                  >
+                    <Icon name="school" size={20} color="#2196F3" />
+                    <Text style={styles.dropdownText}>
+                      {selectedStudentName
+                        ? students.find((s) => s.id === selectedStudentName)?.name
+                        : 'Select Student'}
+                    </Text>
+                    <Icon name="chevron-down" size={20} color="#666" />
+                  </TouchableOpacity>
+                }
+              >
+                {loadingStudents ? (
+                  <ActivityIndicator animating={true} size="small" style={{ padding: 16 }} />
+                ) : students.length > 0 ? (
+                  students.map((student) => (
+                    <Menu.Item
+                      key={student.id}
+                      onPress={() => {
+                        setSelectedStudentName(student.id);
+                        setShowStudentNameMenu(false);
+                      }}
+                      title={student.name}
+                      leadingIcon="account"
+                    />
+                  ))
+                ) : null}
+              </Menu>
+            </View>
+          )}
+
+          {/* Teacher Name Dropdown - Only for teachers */}
+          {selectedUserType === 'teacher' && (
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>Teacher Name</Text>
+              <Menu
+                visible={showTeacherNameMenu}
+                onDismiss={() => setShowTeacherNameMenu(false)}
+                anchor={
+                  <TouchableOpacity
+                    onPress={() => setShowTeacherNameMenu(true)}
+                    style={styles.dropdownButton}
+                  >
+                    <Icon name="briefcase" size={20} color="#2196F3" />
+                    <Text style={styles.dropdownText}>
+                      {selectedTeacherName
+                        ? teachers.find((t) => t.id === selectedTeacherName)?.name
+                        : 'Select Teacher'}
+                    </Text>
+                    <Icon name="chevron-down" size={20} color="#666" />
+                  </TouchableOpacity>
+                }
+              >
+                {loadingTeachers ? (
+                  <ActivityIndicator animating={true} size="small" style={{ padding: 16 }} />
+                ) : teachers.length > 0 ? (
+                  teachers.map((teacher) => (
+                    <Menu.Item
+                      key={teacher.id}
+                      onPress={() => {
+                        setSelectedTeacherName(teacher.id);
+                        setShowTeacherNameMenu(false);
+                      }}
+                      title={teacher.name}
+                      leadingIcon="account"
+                    />
+                  ))
+                ) : null}
+              </Menu>
+            </View>
+          )}
 
           {/* Date Range Filters */}
           <View style={styles.dateRangeContainer}>
@@ -691,6 +925,84 @@ const styles = StyleSheet.create({
     backgroundColor: '#E3F2FD',
     borderRadius: 50,
     padding: 12,
+  },
+  headerTitleSection: {
+    flex: 1,
+  },
+  headerButtonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  pendingApprovalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 5,
+  },
+  pendingApprovalButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  leaveRequestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 5,
+  },
+  leaveRequestButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  holidayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E91E63',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 5,
+  },
+  holidayButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  addAttendanceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4caf50',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 5,
+  },
+  addAttendanceButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 11,
+  },
+  updateAttendanceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ff9800',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 5,
+  },
+  updateAttendanceButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 11,
   },
   filterCard: {
     marginBottom: 16,

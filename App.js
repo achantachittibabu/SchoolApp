@@ -13,9 +13,17 @@ import ContactUsScreen from './screens/ContactUsScreen';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 import FailureScreen from './screens/FailureScreen';
 import AttendanceScreen from './screens/AttendanceScreen';
+import RegisterAttendanceScreen from './screens/RegisterAttendanceScreen';
+import UpdateAttendanceScreen from './screens/UpdateAttendanceScreen';
+import LeaveRequestScreen from './screens/LeaveRequestScreen';
+import PendingLeaveApprovalsScreen from './screens/PendingLeaveApprovalsScreen';
+import LeaveHistoryScreen from './screens/LeaveHistoryScreen';
+import HolidayCalendarScreen from './screens/HolidayCalendarScreen';
 import GradeScreen from './screens/GradeScreen';
 import GradeEditScreen from './screens/GradeEditScreen';
 import TimeTableScreen from './screens/TimeTableScreen';
+import CreateTimeTableScreen from './screens/CreateTimeTableScreen';
+import EditTimeTableScreen from './screens/EditTimeTableScreen';
 import TimeTableDetailScreen from './screens/TimeTableDetailScreen';
 import AssignmentsScreen from './screens/AssignmentsScreen';
 import AssignmentDetailScreen from './screens/AssignmentDetailScreen';
@@ -23,6 +31,15 @@ import ExamsScreen from './screens/ExamsScreen';
 import ExamDetailScreen from './screens/ExamDetailScreen';
 import LibraryScreen from './screens/LibraryScreen';
 import LibraryDetailScreen from './screens/LibraryDetailScreen';
+import AddBookScreen from './screens/AddBookScreen';
+import UpdateBookScreen from './screens/UpdateBookScreen';
+import DeleteBookScreen from './screens/DeleteBookScreen';
+import BookStatusScreen from './screens/BookStatusScreen';
+import BookRequestsScreen from './screens/BookRequestsScreen';
+import MyBookRequestsScreen from './screens/MyBookRequestsScreen';
+import RequestBookScreen from './screens/RequestBookScreen';
+import BookTrackingScreen from './screens/BookTrackingScreen';
+import BookOverdueRequestsScreen from './screens/BookOverdueRequestsScreen';
 import FeePaymentScreen from './screens/FeePaymentScreen';
 import FeePaymentDetailScreen from './screens/FeePaymentDetailScreen';
 import TransportScreen from './screens/TransportScreen';
@@ -130,6 +147,54 @@ export default function App() {
         }}
         />
         <Stack.Screen 
+          name="RegisterAttendance" 
+          component={RegisterAttendanceScreen}
+          //options={{ title: 'Register Attendance' }}
+          screenOptions={{
+          headerShown: false, // Hide header for all screens
+        }}
+        />
+        <Stack.Screen 
+          name="UpdateAttendance" 
+          component={UpdateAttendanceScreen}
+          //options={{ title: 'Update Attendance' }}
+          screenOptions={{
+          headerShown: false, // Hide header for all screens
+        }}
+        />
+        <Stack.Screen 
+          name="LeaveRequest" 
+          component={LeaveRequestScreen}
+          //options={{ title: 'Leave Request' }}
+          screenOptions={{
+          headerShown: false, // Hide header for all screens
+        }}
+        />
+        <Stack.Screen 
+          name="PendingLeaveApprovals" 
+          component={PendingLeaveApprovalsScreen}
+          //options={{ title: 'Pending Leave Approvals' }}
+          screenOptions={{
+          headerShown: false, // Hide header for all screens
+        }}
+        />
+        <Stack.Screen 
+          name="LeaveHistory" 
+          component={LeaveHistoryScreen}
+          //options={{ title: 'Leave History' }}
+          screenOptions={{
+          headerShown: false, // Hide header for all screens
+        }}
+        />
+        <Stack.Screen 
+          name="HolidayCalendar" 
+          component={HolidayCalendarScreen}
+          //options={{ title: 'Holiday Calendar' }}
+          screenOptions={{
+          headerShown: false, // Hide header for all screens
+        }}
+        />
+        <Stack.Screen 
           name="Grade" 
           component={GradeScreen}
           //options={{ title: 'Grades' }}
@@ -149,6 +214,22 @@ export default function App() {
           name="TimeTable" 
           component={TimeTableScreen}
           //options={{ title: 'Time Table' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="CreateTimeTable" 
+          component={CreateTimeTableScreen}
+          //options={{ title: 'Create Time Table' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="EditTimeTable" 
+          component={EditTimeTableScreen}
+          //options={{ title: 'Edit Time Table' }}
           screenOptions={{
           headerShown: false,
         }}
@@ -205,6 +286,78 @@ export default function App() {
           name="LibraryDetail" 
           component={LibraryDetailScreen}
           //options={{ title: 'Book Details' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="AddBook" 
+          component={AddBookScreen}
+          //options={{ title: 'Add Book' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="UpdateBook" 
+          component={UpdateBookScreen}
+          //options={{ title: 'Update Book' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="DeleteBook" 
+          component={DeleteBookScreen}
+          //options={{ title: 'Delete Book' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="BookStatus" 
+          component={BookStatusScreen}
+          //options={{ title: 'Book Status' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="BookRequests" 
+          component={BookRequestsScreen}
+          //options={{ title: 'Book Requests' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="MyRequests" 
+          component={MyBookRequestsScreen}
+          //options={{ title: 'My Book Requests' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="BookTracking" 
+          component={BookTrackingScreen}
+          //options={{ title: 'Book Request Tracking' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="BookOverdue" 
+          component={BookOverdueRequestsScreen}
+          //options={{ title: 'Overdue Books' }}
+          screenOptions={{
+          headerShown: false,
+        }}
+        />
+        <Stack.Screen 
+          name="RequestBook" 
+          component={RequestBookScreen}
+          //options={{ title: 'Request Book' }}
           screenOptions={{
           headerShown: false,
         }}

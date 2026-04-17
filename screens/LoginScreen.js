@@ -21,65 +21,22 @@ export default function LoginScreen({ navigation }) {
   const usertypes = ['student', 'teacher', 'admin'];
 
   const handleLogin = async () => {
-    if (!username || !password) {
-      Alert.alert('Validation Error', 'Please enter both User ID and Password');
-      return;
-    }
+    // if (!username || !password) {
+    //   Alert.alert('Validation Error', 'Please enter both User ID and Password');
+    //   return;
+    // }
 
     setLoading(true);
-    try {
-      const response = await axios.post('http://localhost:5000/api/users/login', {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },username,
-        password,
-        usertype,
-      });
-
-      setLoading(false);
-      console.log('Response Status:', response.status);
-      console.log('Response Data:', response.data);
-      console.log('Full Response:', response);
-      console.log('Profile Picture from API:', response.data.profilePicture);
-      if (response.status === 200) {
-        Alert.alert('Success', 'Login successful!');
-        
-        // Construct image URI from base64 if available
-        let profilePicUri = response.data.profilePicture;
-        if (response.data.profilePictureBase64 && response.data.profilePictureType) {
-          profilePicUri = `data:${response.data.profilePictureType};base64,${response.data.profilePictureBase64}`;
-          
-          // Calculate and log file size
-          const base64String = response.data.profilePictureBase64;
-          const binaryString = atob(base64String);
-          const fileSizeBytes = binaryString.length;
-          const fileSizeKB = (fileSizeBytes / 1024).toFixed(2);
-          const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
-          
-          console.log('Profile Picture Base64 File Size:');
-          console.log(`  Bytes: ${fileSizeBytes}`);
-          console.log(`  KB: ${fileSizeKB}`);
-          console.log(`  MB: ${fileSizeMB}`);
-        }
-        
-        navigation.navigate('Home', { 
-          userid: response.data.userid,
-          username: response.data.username,
-          email: response.data.email,
-          firstName: response.data.firstName,
-          profilePic: profilePicUri,
-          usertype: usertype
-        }     
-      );
-    }
-   } catch (error) {
-      setLoading(false);
-      console.error('Login error:', error);
-      
-      navigation.navigate('Failure', {
-        message: error.response?.data?.message || 'Login failed. Please try again.',
-      });
-    }
+    // Skip API call and route directly to Home
+    setLoading(false);
+    navigation.navigate('Home', { 
+      userid: 'test-user',
+      username: username,
+      email: 'test@example.com',
+      firstName: 'Test',
+      profilePic: null,
+      usertype: usertype
+    });
   };
 
   return (
